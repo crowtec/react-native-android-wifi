@@ -78,7 +78,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
             //wifiObject.put("venueName", result.venueName);
             //wifiObject.put("centerFreq0", result.centerFreq0);
             //wifiObject.put("centerFreq1", result.centerFreq1);
-            //wifiObject.put("channelWidth", result.channelWidth);
+            wifiObject.put("channelWidth", result.channelWidth);
 					} catch (JSONException e) {
           	errorCallback.invoke(e.getMessage());
 					}
