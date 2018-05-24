@@ -221,7 +221,7 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 
 	//Method to connect to WIFI Network
 	public Boolean connectTo(ScanResult result, String password, String ssid){
-		connectTo(result, password, ssid, null);
+		return connectTo(result, password, ssid, null);
 	}
 	public Boolean connectTo(ScanResult result, String password, String ssid, String username) {
 		//Make new configuration
