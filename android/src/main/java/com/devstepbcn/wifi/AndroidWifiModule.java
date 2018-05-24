@@ -189,6 +189,23 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 		ssidFound.invoke(connected);
 	}
 
+	//Send the ssid, username and password of an enterprise Wifi network into this to connect to the network.
+	//Example:  wifi.findAndConnect(ssid, password);
+	//After 10 seconds, a post telling you whether you are connected will pop up.
+	//Callback returns true if ssid is in the range
+	@ReactMethod
+	public void findAndConnect(String ssid, String username, String password, Callback ssidFound) {
+		List < ScanResult > results = wifi.getScanResults();
+		boolean connected = false;
+		for (ScanResult result: results) {
+			String resultString = "" + result.SSID;
+			if (ssid.equals(resultString)) {
+				connected = connectTo(result, password, ssid, username);
+			}
+		}
+		ssidFound.invoke(connected);
+	}
+
 	//Use this method to check if the device is currently connected to Wifi.
 	@ReactMethod
 	public void connectionStatus(Callback connectionStatusResult) {
@@ -202,7 +219,10 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 	}
 
 	//Method to connect to WIFI Network
-	public Boolean connectTo(ScanResult result, String password, String ssid) {
+	public Boolean connectTo(ScanResult result, String password, String ssid){
+		connectTo(result, password, ssid, null);
+	}
+	public Boolean connectTo(ScanResult result, String password, String ssid, String username) {
 		//Make new configuration
 		WifiConfiguration conf = new WifiConfiguration();
 		
@@ -213,31 +233,40 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
     }
 
 		String capabilities = result.capabilities;
-		
-		if (capabilities.contains("WPA")  || 
+		if (capabilities.contains("EAP") && username != null){
+
+			WifiEnterpriseConfig enterpriseConfig = new WifiEnterpriseConfig();
+			conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_EAP);
+			conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.IEEE8021X);
+			enterpriseConfig.setIdentity(username);
+			enterpriseConfig.setPassword(password);
+			enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.PEAP);
+			conf.enterpriseConfig = enterpriseConfig;
+
+		} else if (capabilities.contains("WPA")  ||
           capabilities.contains("WPA2") || 
           capabilities.contains("WPA/WPA2 PSK")) {
 
-	    // appropriate ciper is need to set according to security type used,
-	    // ifcase of not added it will not be able to connect
-	    conf.preSharedKey = "\"" + password + "\"";
-	    
-	    conf.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
-	    
-	    conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-	    
-	    conf.status = WifiConfiguration.Status.ENABLED;
-	    
-	    conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
-	    conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
-	    
-	    conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
-	    
-	    conf.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
-	    conf.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
-	    
-	    conf.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
-	    conf.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
+			// appropriate ciper is need to set according to security type used,
+			// ifcase of not added it will not be able to connect
+			conf.preSharedKey = "\"" + password + "\"";
+
+			conf.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+
+			conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+
+			conf.status = WifiConfiguration.Status.ENABLED;
+
+			conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+			conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
+
+			conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
+
+			conf.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
+			conf.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
+
+			conf.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+			conf.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
 
 		}	else if (capabilities.contains("WEP")) {
 			conf.wepKeys[0] = "\"" + password + "\"";
@@ -261,17 +290,17 @@ public class AndroidWifiModule extends ReactContextBaseJavaModule {
 			}
 		}
 
-    // If network not already in configured networks add new network
+    	// If network not already in configured networks add new network
 		if ( updateNetwork == -1 ) {
-      updateNetwork = wifi.addNetwork(conf);
-      wifi.saveConfiguration();
+		  updateNetwork = wifi.addNetwork(conf);
+		  wifi.saveConfiguration();
 		};
 
-    if ( updateNetwork == -1 ) {
-      return false;
-    }
+		if ( updateNetwork == -1 ) {
+		  return false;
+		}
 
-    boolean disconnect = wifi.disconnect();
+    	boolean disconnect = wifi.disconnect();
 		if ( !disconnect ) {
 			return false;
 		};
